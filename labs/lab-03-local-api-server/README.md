@@ -12,7 +12,10 @@ This is the artifact every later day extends — by end of Day 4 your agent
 will be calling these routes.
 
 ## You start with
-- Your Lab 2 working folder.
+- Your Lab 2 working folder, **or** — to do Lab 3 standalone (no Labs 1–2) — a copy of `checkpoints/lab-3-start/`, which provides `models.py` + `storage.py` finished so you only build the two files below:
+  ```bash
+  cp -r checkpoints/lab-3-start my-lab3 && cd my-lab3 && pip install -e ".[dev]"
+  ```
 
 ## You'll end with
 - `catalog/decorators.py` with `@retry(times, delay, exceptions)` and `@log_calls`

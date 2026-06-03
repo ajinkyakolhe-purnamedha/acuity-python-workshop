@@ -18,3 +18,15 @@ pip install -e ".[dev]"
 | `day-4-start/` | End of Day 3 — adds the full pytest suite, coverage, and GitHub Actions |
 
 The final state (Day 4 end) is the `product-catalog/` folder one level up.
+
+## Standalone lab baseline
+
+| Folder | Contents |
+|---|---|
+| `lab-3-start/` | **Lab 3 on its own** (no Labs 1–2 needed). `models.py` + `storage.py` are provided **complete**; `decorators.py` + `server.py` are **scaffolds** with `# TODO`s. You build only the decorators + FastAPI server. Done-signal: `pytest tests/test_lab03.py`. |
+
+```bash
+cp -r checkpoints/lab-3-start my-lab3 && cd my-lab3
+pip install -e ".[dev]"
+pytest tests/test_lab03.py          # RED — now fill the TODOs in decorators.py + server.py → GREEN
+```
