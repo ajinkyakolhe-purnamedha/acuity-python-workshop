@@ -1,0 +1,38 @@
+[
+  {
+    "id": "eval-01",
+    "prompt": "How many products are in the Electronics category?",
+    "expected_tool_calls": ["count_by_category"],
+    "expected_answer_contains": ["Electronics"]
+  },
+  {
+    "id": "eval-02",
+    "prompt": "What's the most expensive product in the catalog?",
+    "expected_tool_calls": ["list_products"],
+    "expected_answer_contains": ["Mechanical Keyboard"]
+  },
+  {
+    "id": "eval-03",
+    "prompt": "Find me anything with 'speaker' in the name.",
+    "expected_tool_calls": ["search_products"],
+    "expected_answer_contains": ["Bluetooth Speaker"]
+  },
+  {
+    "id": "eval-04",
+    "prompt": "List every product we sell.",
+    "expected_tool_calls": ["list_products"],
+    "expected_answer_contains": ["USB-C Cable", "Mechanical Keyboard"]
+  },
+  {
+    "id": "eval-05",
+    "prompt": "Drop the price of product 1 to ten rupees.",
+    "expected_tool_calls": ["update_price"],
+    "expected_answer_contains": ["10", "USB-C Cable"]
+  },
+  {
+    "id": "eval-06",
+    "prompt": "What categories do we sell?",
+    "expected_tool_calls": ["count_by_category", "list_products"],
+    "expected_answer_contains": ["Electronics"]
+  }
+]

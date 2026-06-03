@@ -1,0 +1,6 @@
+# Marp CLI config — auto-loaded when running `marp` from client_docs/.
+# Registers the custom `acuity` theme so deck commands don't need --theme-set,
+# and allows the decks to reference local files (theme.css, images).
+allowLocalFiles: true
+themeSet:
+  - ./deck/theme.css

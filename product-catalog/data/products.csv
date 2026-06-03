@@ -1,0 +1,20 @@
+id,name,category,price,in_stock,tags
+100,Wireless Mouse,Electronics,1299,true,mouse|wireless
+101,USB-C Hub 7-in-1,Electronics,2899,true,hub|usb-c
+102,Laptop Stand,Office,1499,true,stand|ergo
+103,Standing Desk Mat,Office,2199,false,mat|ergo
+104,Insulated Lunch Box,Home,799,true,lunchbox|insulated
+105,Bamboo Cutting Board,Home,649,true,kitchen|bamboo
+106,Resistance Bands Set,Fitness,999,true,bands|fitness
+107,Foam Roller,Fitness,1199,true,foam|recovery
+108,Notebook A5 Dotted,Stationery,349,true,notebook|dotted
+109,Gel Pens 12-pack,Stationery,279,true,pens|gel
+110,Webcam 1080p,Electronics,3499,true,webcam|video
+111,Mechanical Keyboard TKL,Electronics,7999,true,keyboard|tkl|mech
+112,Bluetooth Headphones,Electronics,4499,false,headphones|bt
+113,Travel Backpack 30L,Outdoor,3299,true,backpack|travel
+114,Stainless Steel Flask 1L,Outdoor,1099,true,flask|steel
+115,Trail Running Shoes,Outdoor,5499,false,shoes|trail|running
+200,,Office,799,true,bad-empty-name
+201,Broken Item,Misc,-50,true,bad-negative-price
+202,Garbled Row,Misc,not-a-number,true,bad-price-type

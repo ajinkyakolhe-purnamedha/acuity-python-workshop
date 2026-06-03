@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+report.html
+coverage.xml
+junit.xml
+
+# Workshop runtime artifacts (participants generate these during labs)
+catalog.json
+import_report.json
+
+# OS
+.DS_Store

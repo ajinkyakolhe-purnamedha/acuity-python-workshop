@@ -1,0 +1,142 @@
+/* @theme acuity */
+/* Shared Marp theme for all 4 day decks. Neutral / client-agnostic. */
+
+@import "default";
+
+:root {
+  --acuity-fg: #0e1116;
+  --acuity-muted: #5b6470;
+  --acuity-accent: #2d5bff;
+  --acuity-bg: #ffffff;
+  --acuity-code-bg: #f6f7f9;
+  --acuity-rule: #e3e6eb;
+}
+
+section {
+  background: var(--acuity-bg);
+  color: var(--acuity-fg);
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  font-size: 26px;
+  padding: 56px 72px;
+}
+
+h1 {
+  font-size: 44px;
+  color: var(--acuity-fg);
+  border-bottom: 3px solid var(--acuity-accent);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+}
+
+h2 {
+  font-size: 34px;
+  color: var(--acuity-fg);
+  margin-top: 0;
+}
+
+h3 {
+  font-size: 26px;
+  color: var(--acuity-muted);
+}
+
+code {
+  background: var(--acuity-code-bg);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.92em;
+}
+
+pre {
+  background: var(--acuity-code-bg);
+  border-left: 4px solid var(--acuity-accent);
+  border-radius: 6px;
+  padding: 18px 22px;
+  font-size: 22px;
+  line-height: 1.4;
+  overflow-x: auto;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+}
+
+blockquote {
+  border-left: 4px solid var(--acuity-muted);
+  color: var(--acuity-muted);
+  padding-left: 16px;
+  font-style: italic;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 22px;
+}
+
+th, td {
+  border: 1px solid var(--acuity-rule);
+  padding: 8px 14px;
+  text-align: left;
+}
+
+th {
+  background: var(--acuity-code-bg);
+}
+
+/* Title slide */
+section.title {
+  background: linear-gradient(135deg, #0e1116 0%, #1a2030 100%);
+  color: #fff;
+  text-align: left;
+}
+section.title h1 {
+  color: #fff;
+  border-bottom: 3px solid var(--acuity-accent);
+  font-size: 54px;
+}
+section.title h2 {
+  color: #c7ccd6;
+  font-weight: 400;
+}
+
+/* Senior-track slide */
+section.senior {
+  background: #f3f0ff;
+  border-left: 12px solid #6b3df5;
+}
+section.senior h1 {
+  color: #4a23b8;
+  border-bottom-color: #6b3df5;
+}
+section.senior::before {
+  content: "🎓 SENIOR TRACK";
+  display: block;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: #6b3df5;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+/* Lab handoff slide */
+section.lab {
+  background: #fffbe6;
+  border-left: 12px solid #f5b800;
+}
+section.lab h1 {
+  color: #8a6500;
+  border-bottom-color: #f5b800;
+}
+
+/* Footer */
+footer {
+  color: var(--acuity-muted);
+  font-size: 14px;
+}
+
+/* Page numbers */
+section::after {
+  color: var(--acuity-muted);
+  font-size: 14px;
+}
