@@ -2,6 +2,9 @@
 
 **Duration:** ~80 min · **Day:** 1 · **Module:** 3 (OOP, Decorators, Type Hints, FastAPI)
 
+> **Concepts used:** decorators (`@log_calls`, `@retry`) & the FastAPI `@app.get` route pattern → `codealong/module-3.ipynb`; the `Product` class & `.to_dict()` it serves → `catalog/models.py` from Labs 1–2.
+> This lab applies the module's `BankAccount` decorator/route concepts to the course's `Product` domain — same patterns, different thing (the deliberate concept-vs-lab seam).
+
 ## Goal
 **Decorators** are the real concept of Module 3 — a function that wraps another function
 and returns a new one. Write two you'll reuse all week (`@retry`, `@log_calls`). Then meet
@@ -38,12 +41,12 @@ cp ../labs/lab-03-local-api-server/starter/*.py catalog/   # run from product-ca
 
 > Routes return `.to_dict()`, **not** the `Product` dataclass — FastAPI can't serialize a dataclass directly on Day 1. Day 2 fixes this by making `Product` a Pydantic model.
 
-## Hints (from the `module-3-simple` notebook)
+## Hints (from `codealong/module-3.ipynb`)
 
-- **A decorator is just** `greet = log_calls(greet)` — take a function, wrap it, return the wrapper (§7).
-- **`@log_calls`** → `def wrapper(*args, **kwargs): ...; return func(*args, **kwargs)` (§7). Add `@functools.wraps(func)` so `__name__` survives (§8).
-- **`@retry`** → it's a decorator *with config*: loop `for attempt in range(1, times + 1)`, `try` the call, re-raise on the last attempt (§9).
-- **`@app.get("/products")`** → the **same pattern**: it *registers* the function as a route, exactly like the tiny `routes = {}` demo (§10). Return a `dict`/`list` and FastAPI makes it JSON.
+- **A decorator is just** `greet = log_calls(greet)` — take a function, wrap it, return the wrapper (*what a decorator is* section).
+- **`@log_calls`** → `def wrapper(*args, **kwargs): ...; return func(*args, **kwargs)`; add `@functools.wraps(func)` so `__name__` survives (*what a decorator is* section).
+- **`@retry`** → it's a decorator *with config*: loop `for attempt in range(1, times + 1)`, `try` the call, re-raise on the last attempt (*`@retry(times=3)`* section).
+- **`@app.get("/products")`** → the **same pattern**: it *registers* the function as a route, exactly like the tiny `routes = {}` demo (*FastAPI is decorators in action* section). Return a `dict`/`list` and FastAPI makes it JSON.
 - **Errors** → wrap the catalog call in `try/except CatalogError` and `raise HTTPException(status_code=...)`.
 
 ## Steps

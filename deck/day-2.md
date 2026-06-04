@@ -55,158 +55,123 @@ Same `product-catalog/` repo, three new files: `models.py` (upgraded), `client.p
 
 # JSON — the parts that bite
 
-```json
-{
-  "id": 1,
-  "name": "USB-C Cable",
-  "price": 499.0,
-  "in_stock": true,
-  "tags": ["cable", "usb-c"]
-}
-```
+Yesterday's `@dataclass BankAccount` has to leave Python eventually — as JSON over the wire. JSON is **stricter and poorer** than Python: a few of its rules will bite you.
 
-- **No trailing commas.** No comments. (Some tools accept them — the spec doesn't.)
-- `true`/`false`/`null` are lowercase, unquoted.
-- Numbers can be int or float but **no leading zeros**, **no NaN**, **no Infinity**.
-- All keys are strings. JSON has no tuples, no sets, no dates.
+- No trailing commas, no comments; `true`/`false`/`null` are lowercase. No `NaN`/`Infinity`.
+- Keys are always strings. JSON has **no tuples, no sets, no dates**.
+- Map: object↔dict, array↔list. A Python **tuple round-trips back as a list**.
 
-Map JSON ↔ Python: `object ↔ dict`, `array ↔ list`, the rest is obvious.
+→ notebook: module-4 cell 2
 
 ---
 
-# Stdlib `json` — the 4 functions
+# stdlib `json` — the 4 functions
+
+Two pairs. The **`s` means "string"**: `loads`/`dumps` work on strings, `load`/`dump` work on open files. That single letter is the whole API.
 
 ```python
-import json
-
-data = json.loads('{"id": 1, "name": "x"}')   # str  → dict
-text = json.dumps(data, indent=2)              # dict → str
-
-with open("catalog.json") as fh:
-    data = json.load(fh)                       # file → dict
-with open("catalog.json", "w") as fh:
-    json.dump(data, fh, indent=2)              # dict → file
+text = json.dumps(account_dict, indent=2)   # dict → str
+back = json.loads(text)                      # str  → dict
 ```
 
-`load`/`dump` work with file handles; `loads`/`dumps` work with strings.
-The `s` is for **string**.
+→ notebook: module-4 cell 4
 
 ---
 
-# JSON pitfalls in real code
+# JSON pitfalls — what raw `json` can't serialise
+
+`json.dumps` raises on a `Decimal` or a `datetime`, and **silently** emits invalid `NaN`. The escape hatch `default=str` stringifies anything — but loses the type. Pydantic handles these for real.
 
 ```python
-json.dumps({"price": Decimal("4.99")})
-# TypeError: Object of type Decimal is not JSON serializable
-
-json.dumps({datetime.now(): 1})
-# TypeError: keys must be str, int, float, bool or None
-
-json.dumps({"data": float("nan")})
-# Returns 'NaN' — INVALID JSON. Other languages reject it.
+json.dumps({"created": datetime.now()})  # TypeError
+json.dumps({"bal": float("nan")})        # 'NaN' — invalid JSON!
 ```
 
-Defenses:
-- Use `default=str` in `dumps` for non-trivial values
-- Use Pydantic — it handles `datetime`, `Decimal`, `UUID` correctly out of the box
+→ notebook: module-4 cell 6
 
 ---
 
 # Why Pydantic, not raw dicts
 
+A raw account `dict` with `id="one", balance=-50` is **wrong forever** — nothing checks it until something downstream crashes. Pydantic validates at the **boundary** and gives field-level errors.
+
 ```python
-# raw dict — silently wrong forever
-product = {"id": "one", "name": "", "price": -50}
-
-# Pydantic — caught at the boundary
-class Product(BaseModel):
-    id: int = Field(ge=1)
-    name: str = Field(min_length=1)
-    price: float = Field(ge=0)
-
-Product.model_validate({"id": "one", "name": "", "price": -50})
-# ValidationError:
-#   id   → Input should be a valid integer
-#   name → String should have at least 1 character
-#   price → Input should be >= 0
+BankAccount.model_validate({"id": "one", "balance": -50})
+# ValidationError: id → valid integer; balance → >= 0
 ```
+
+→ notebook: module-4 cell 8
 
 ---
 
-# Three Pydantic models, one resource
+# Migrate `BankAccount`: `@dataclass` → `BaseModel`
+
+The headline change. Same six fields, same type hints — but `BaseModel` **validates on construction**. `Field(ge=...)` adds constraints; `default_factory=list` gives each account its own `tags`.
 
 ```python
-class ProductBase(BaseModel):           # shared fields
-    name: str
-    category: str
-    price: float = Field(ge=0)
-
-class ProductCreate(ProductBase):       # POST body: caller supplies id
+class BankAccount(BaseModel):
     id: int = Field(ge=1)
-
-class ProductUpdate(BaseModel):         # PATCH body: all optional
-    name: str | None = None
-    price: float | None = Field(default=None, ge=0)
-    model_config = ConfigDict(extra="forbid")
-
-class Product(ProductBase):             # response / storage
-    id: int
+    balance: float = Field(default=0.0, ge=0)
+    tags: list[str] = Field(default_factory=list)
 ```
 
-Different shapes for create / update / read — common pattern. Don't try to make one class do all three.
+→ notebook: module-4 cell 10
+
+---
+
+# Multiple models, one resource
+
+One class can't do create + update + read. **Create** needs `id`; **update** is all-optional (PATCH) and `extra="forbid"` rejects typos; **read** is what storage returns.
+
+```python
+class AccountBase(BaseModel): owner: str; balance: float = Field(ge=0)
+class AccountCreate(AccountBase): id: int = Field(ge=1)
+class AccountUpdate(BaseModel):
+    balance: float | None = None
+    model_config = ConfigDict(extra="forbid")
+```
+
+→ notebook: module-4 cell 12
 
 ---
 
 # Coercion vs validation
 
+Pydantic v2 is **lax by default**: `"1500.0"`→float, `"true"`→bool, `"1"`→int. This is exactly what makes a CSV (all strings) feed an API without manual parsing. Need it exact? `strict=True`.
+
 ```python
-ProductCreate.model_validate({
-    "id": "1",          # str → int ✓ coerced
-    "name": "Widget",
-    "category": "Misc",
-    "price": "9.50",    # str → float ✓ coerced
-    "in_stock": "true", # str → bool ✓ coerced
-})
+AccountCreate.model_validate({"id": "1", "balance": "1500.0"})  # coerced ✓
 ```
 
-Pydantic 2 is **lax by default** — strings that *look like* numbers/bools become them. This is what lets CSV → API work without preprocessing.
-
-Need strict? `model_validate(data, strict=True)` or `Field(strict=True)`.
+→ notebook: module-4 cell 14
 
 ---
 
 # `@field_validator` for custom logic
 
-CSV will hand us `tags="cable|usb-c"` as one string. One validator fixes it:
+CSV will hand us `tags="primary|online"` — one string, not a list. A `mode="before"` validator splits it **before** type-checking, and passes a real list through untouched.
 
 ```python
 @field_validator("tags", mode="before")
 @classmethod
-def _split_csv_tags(cls, v):
-    if isinstance(v, str):
-        return [t.strip() for t in v.split("|") if t.strip()]
-    return v
+def _split(cls, v):
+    return v.split("|") if isinstance(v, str) else v
 ```
 
-- `mode="before"` runs **before** type coercion
-- `mode="after"` runs on the parsed list
-- Use it for transformations the JSON spec can't express
+→ notebook: module-4 cell 16
 
 ---
 
 # FastAPI + Pydantic: free /docs
 
+One type hint on the route gives you a validated body (422 with field errors), a serialised response, and an auto-generated `/docs` — no extra code.
+
 ```python
-@app.post("/products", status_code=201, response_model=Product)
-def create_product(payload: ProductCreate) -> Product:
-    return catalog.add(Product(**payload.model_dump()))
+@app.post("/accounts", response_model=BankAccount)
+def create(payload: AccountCreate): ...
 ```
 
-What you get for that one type hint:
-- Request body validated against `ProductCreate` (422 on failure with field-level errors)
-- Response serialised through `Product` (extra fields stripped)
-- `/docs` Swagger UI populated automatically
-- `/openapi.json` for codegen if you ever need a TS client
+→ notebook: module-4 cell 18
 
 ---
 
@@ -214,7 +179,7 @@ What you get for that one type hint:
 
 # 🧪 Lab 4 — Pydantic Models for the Catalog
 
-**80 min** · open `labs/lab-04-pydantic-models.md`
+**80 min** · open `labs/lab-04-pydantic-models/README.md`
 
 You'll add:
 - `Product`, `ProductCreate`, `ProductUpdate` in `models.py`
@@ -232,135 +197,96 @@ You'll add:
 
 ---
 
-# The four verbs you actually use
+# The HTTP verbs you actually use
 
-| | safe? | idempotent? | typical use |
-|---|---|---|---|
-| `GET` | ✓ | ✓ | read a resource |
-| `POST` | ✗ | ✗ | create / non-idempotent action |
-| `PUT` | ✗ | ✓ | **replace** the whole resource |
-| `PATCH` | ✗ | ✗* | partial update |
-| `DELETE` | ✗ | ✓ | remove |
+Every call to the account server is one verb + one URL. The verb is a **promise about what the call does** — and two properties of that promise decide whether a retry is safe.
 
-*PATCH idempotency depends on the patch shape.
+- **Safe** = read-only, changes nothing (`GET`). **Idempotent** = same request, same end state however many times you send it.
+- Idempotent matters because a retry re-sends the *same* request: safe for `GET`/`PUT`/`DELETE`, dangerous for a non-idempotent `POST`.
 
-**Idempotent** = same request, same outcome no matter how many times you send it. Matters for retries.
+→ notebook: module-5 cell 4
 
 ---
 
-# Status codes (the ones you'll actually see)
+# Status codes — whose fault is it?
 
-| Range | Meaning |
-|---|---|
-| **2xx** | All good. `200 OK`, `201 Created`, `204 No Content` |
-| **3xx** | Redirect. `301 Moved`, `304 Not Modified`. Usually invisible. |
-| **4xx** | **Your** fault. `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, `409 Conflict`, `422 Unprocessable Entity` |
-| **5xx** | **Server's** fault. `500`, `502`, `503`, `504` |
+The first digit tells you who broke and what to do. The whole retry policy falls out of it: a 4xx is **you** (don't retry — the next try fails identically); a 5xx or a dropped connection is **transient** (retry may recover).
 
-Rule of thumb: **retry 5xx and network errors; never retry 4xx**.
+- **2xx** ok · **3xx** redirect · **4xx** YOUR fault · **5xx** SERVER's fault.
+- Rule: **retry 5xx + network errors; never retry 4xx**.
+
+→ notebook: module-5 cell 6
 
 ---
 
 # `requests` — one good pattern
 
+A `Session` pools TCP connections and carries default headers across calls. The shape is always the same four moves — and `timeout` is **not optional**: without it a stalled server hangs your code forever.
+
 ```python
-import requests
-
-session = requests.Session()              # pooled connections
-session.headers.update({"X-Trace-Id": "abc"})  # default header
-
-response = session.post(
-    "http://localhost:8000/products",
-    json=payload,            # serialises dict → JSON + sets Content-Type
-    timeout=5.0,             # ALWAYS set a timeout
-)
-response.raise_for_status()  # raises HTTPError on 4xx/5xx
-return response.json()       # parses response body
+session = requests.Session()
+session.headers.update({"X-Trace-Id": "abc"})
+resp = session.post(url, json=payload, timeout=5.0)  # json= serialises + sets header
+resp.raise_for_status()                              # 4xx/5xx → HTTPError
 ```
 
-Without `timeout=` you risk hanging forever. Don't ship code without it.
+→ notebook: module-5 cell 8
 
 ---
 
 # Auth: tokens & headers
 
+Auth is just a header you attach to the session once — every later call carries it. The cardinal sin is leaking the secret: an API key in the **query string** lands in server logs and browser history; keep it in a header, and keep the value in an env var, never in source.
+
 ```python
-# Bearer token (most common)
-session.headers["Authorization"] = f"Bearer {token}"
-
-# Basic auth
-requests.get(url, auth=("alice", "secret"))
-
-# API key in header
-session.headers["X-API-Key"] = key
-
-# API key in query string (avoid — leaks into logs)
-session.params = {"api_key": key}
+session.headers["Authorization"] = f"Bearer {os.environ['TOKEN']}"
 ```
 
-Put secrets in **env vars**, never source. `os.environ["CATALOG_TOKEN"]`.
+→ notebook: module-5 cell 10
 
 ---
 
-# Wrap it in a class — `APIClient`
+# Wrap it in `AccountClient`
+
+A class with a CRUD method per verb invites copy-paste drift. Instead, **one private `_request` funnel** owns the URL-joining, the timeout, and the error check; every public method calls it. A non-2xx response becomes a small `APIError(status, detail)` you can catch.
 
 ```python
-class APIClient:
-    def __init__(self, base_url, *, timeout=5.0, session=None):
-        self.base_url = base_url.rstrip("/")
-        self._session = session or requests.Session()
-        self.timeout = timeout
-
-    @retry(times=3, delay=0.2,
-           exceptions=(requests.ConnectionError, requests.Timeout))
-    def _request(self, method, path, **kwargs):
-        kwargs.setdefault("timeout", self.timeout)
-        resp = self._session.request(method, f"{self.base_url}{path}", **kwargs)
-        if not resp.ok:
-            raise APIError(resp.status_code, resp.json().get("detail", resp.text))
-        return resp
+def _request(self, method, path, **kwargs):
+    resp = self._session.request(method, self.base_url + path, **kwargs)
+    if not resp.ok:
+        raise APIError(resp.status_code, ...)
+    return resp
 ```
 
-One `_request`. All other methods funnel through it.
+→ notebook: module-5 cell 12
 
 ---
 
-# Typed return values, not dicts
+# Typed returns, not dicts
+
+The wire speaks dicts; your code should not. Each method validates the JSON back into the **Pydantic models from Module 4**, so callers stay in `BankAccount`-land — and a malformed server response fails loudly at the boundary, not three functions later.
 
 ```python
-def list_products(self) -> list[Product]:
-    data = self._request("GET", "/products").json()
-    return [Product.model_validate(row) for row in data]
-
-def create_product(self, payload: ProductCreate) -> Product:
-    data = self._request("POST", "/products",
-                         json=payload.model_dump()).json()
-    return Product.model_validate(data)
+def list_accounts(self) -> list[BankAccount]:
+    data = self._request("GET", "/accounts").json()
+    return [BankAccount.model_validate(r) for r in data]
 ```
 
-Callers stay in Pydantic-land all the way down. The dict only exists for ~1 line inside the client.
+→ notebook: module-5 cell 14
 
 ---
 
 # When to retry — and when not
 
+Reuse Day-1's `@retry` on the `_request` funnel, but scope it to **transient** failures only: connection drops and timeouts. The exception tuple *is* the policy — a 4xx never raises those types, so it can never be retried.
+
 ```python
-@retry(
-    times=3, delay=0.2,
-    exceptions=(requests.ConnectionError, requests.Timeout),
-)
+@retry(times=3, delay=0.2,
+       exceptions=(ConnectionError, Timeout))   # never 400/401/403/409/422
+def _request(self, ...): ...
 ```
 
-**Retry:**
-- Connection refused / DNS / timeout (network blip)
-- 502 / 503 / 504 (upstream temporarily unavailable)
-
-**Don't retry:**
-- 400 / 422 — your payload is wrong, more tries won't fix it
-- 401 / 403 — your auth is wrong
-- 409 — the conflict is real
-
-Day 3 will *test* that you retry only the right things.
+→ notebook: module-5 cell 16
 
 ---
 
@@ -368,7 +294,7 @@ Day 3 will *test* that you retry only the right things.
 
 # 🧪 Lab 5 — Build the `APIClient`
 
-**80 min** · open `labs/lab-05-api-client.md`
+**80 min** · open `labs/lab-05-api-client/README.md`
 
 You'll build:
 - `catalog/client.py` — `APIClient` + `APIError`
@@ -389,72 +315,49 @@ End state: `APIClient().list_products()` returns `list[Product]`.
 
 # Chaining: output of A → input of B
 
-```python
-# create then update then list
-created = client.create_product(ProductCreate(...))
-client.update_product(created.id, ProductUpdate(price=9.99))
-for p in client.list_products():
-    print(p.id, p.price)
-```
+We have an `AccountClient`. Real automation isn't one call — it's small clients **composed into a workflow**, where the output of step A is the input of step B: `create` returns an account whose `id` feeds the `update`, which feeds the `list`.
 
-Real automation = small clients composed into workflows.
-Tomorrow's tests will mock each step independently.
+- The composition is the program; each step stays tiny and testable.
+- Day 3 will **mock each step independently** — chaining is only safe because the seams are clean.
+
+→ notebook: module-6 cell 4
 
 ---
 
 # Data-driven: CSV → API
 
-```python
-with open("data/products.csv") as fh:
-    for row_no, row in enumerate(csv.DictReader(fh), start=2):
-        try:
-            payload = ProductCreate.model_validate(row)
-        except ValidationError as exc:
-            errors.append({"row": row_no, "errors": exc.errors()})
-            continue
-        client.create_product(payload)
-```
+A CSV is a list of intentions. Walk it with `csv.DictReader`, validate each row through `AccountCreate.model_validate(row)`, then send the survivors. Pydantic coercion turns CSV **strings** into typed values (`"1500.0"` → `float`).
 
-Three things you must keep separate:
-1. **Validation errors** — row never reached the API
-2. **API errors** — server rejected it (409, 422, 500…)
-3. **Successes**
+- Keep **three buckets** separate: **validation errors** (row never reached the API), **API errors** (server rejected: 409/422/500), **successes**.
+- Collapsing them lies to the operator — they can't tell a bad row from a flaky server.
 
-Collapsing them into one bucket lies to whoever reads the report.
+→ notebook: module-6 cell 6
 
 ---
 
 # Environment & secrets
 
+The base URL and token are **config, not code** — read them from the environment so the same script runs against staging or prod untouched. Workshops: a `.env` file + `python-dotenv`. Production: a secret manager injecting env vars.
+
 ```python
-# never commit secrets
-import os
-TOKEN = os.environ["CATALOG_TOKEN"]
-BASE_URL = os.environ.get("CATALOG_BASE_URL", "http://localhost:8000")
+TOKEN = os.environ["CATALOG_TOKEN"]            # required → fail loud if missing
+BASE  = os.environ.get("CATALOG_BASE_URL", "http://localhost:8000")
 ```
 
-For workshops: a `.env` file + `python-dotenv`.
-For production: secret manager + injected env vars.
-**Never** `print(token)` — it ends up in CI logs forever.
+- **Never** `print(token)` — it lands in CI logs forever.
+
+→ notebook: module-6 cell 8
 
 ---
 
 # Pagination
 
-```python
-url = "/products?page=1"
-while url:
-    data = client._request("GET", url).json()
-    for row in data["items"]:
-        yield row
-    url = data.get("next")
-```
+A server won't hand you 10,000 accounts in one response — it pages them. Two shapes you'll meet: **cursor** (`{"items": [...], "next": "/accounts?page=2"}`) and **offset** (`?offset=20&limit=10`). Follow `next` until it's `None`.
 
-Two common shapes:
-1. **Cursor**: server returns `{"items": [...], "next": "/products?page=2"}`
-2. **Offset**: client sends `?offset=20&limit=10`
+- **Cursor is safer**: offset double-reads / skips rows when items shift mid-scan.
+- Your loop is the same either way — accumulate items, advance the pointer, stop when it's empty.
 
-Cursor is safer (no double-reads when items shift). Most modern APIs use it.
+→ notebook: module-6 cell 10
 
 ---
 
@@ -465,31 +368,28 @@ HTTP/1.1 429 Too Many Requests
 Retry-After: 30
 ```
 
-```python
-if resp.status_code == 429:
-    delay = float(resp.headers.get("Retry-After", 1))
-    time.sleep(delay)
-    return self._request(method, path, **kwargs)   # retry once
-```
+A `429` means *slow down* — and the server tells you how long via `Retry-After`. **Respect that header** instead of hammering; blind retries make it worse.
 
-`@retry(...)` blindly retries — for 429s, **respect `Retry-After`** instead of hammering. Production code: exponential backoff with jitter.
+- Wait `Retry-After` seconds, then retry the same request once.
+- Production: exponential backoff **+ jitter** so a fleet doesn't retry in lockstep.
+
+→ notebook: module-6 cell 12
 
 ---
 
 # The report is the product
 
 ```json
-{
-  "summary": {"rows_read": 19, "created": 16,
-               "validation_errors": 3, "api_errors": 0},
-  "validation_errors": [
-    {"row": 18, "input": {"name": ""},
-     "errors": [{"loc": ["name"], "msg": "String should have at least 1 character"}]}
-  ]
-}
+{ "summary": {"rows_read": 5, "created": 2,
+              "validation_errors": 2, "api_errors": 1},
+  "validation_errors": [{"row": 3, "input": {...}, "errors": [...]}] }
 ```
 
-The CSV is input. The report is the **artifact you hand back to the operator** so they can fix row 18 and re-run. This report is what Day 3's tests will assert against.
+The CSV is input; the **report is the artifact** you hand back. It's what lets an operator fix row 3 and re-run — and what Day 3's tests assert against.
+
+- Three buckets in, three buckets out: `created`, `validation_errors`, `api_errors`.
+
+→ notebook: module-6 cell 14
 
 ---
 
@@ -497,7 +397,7 @@ The CSV is input. The report is the **artifact you hand back to the operator** s
 
 # 🧪 Lab 6 — Bulk-Import Workflow
 
-**80 min** · open `labs/lab-06-bulk-import.md`
+**80 min** · open `labs/lab-06-bulk-import/README.md`
 
 You'll build:
 - `data/products.csv` with intentionally bad rows

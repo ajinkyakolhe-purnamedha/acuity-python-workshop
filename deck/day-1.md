@@ -50,112 +50,85 @@ A catch-up baseline (`day-N-start/`) is provided each morning.
 
 ---
 
-# Why we start with the basics
+# Our story for today: bank accounts
 
-Even seasoned engineers skip the *shapes* of Python that everything else leans on:
-
-- **Functions** are values — pass them around
-- **Exceptions** are control flow — design them
-- **`*args` / `**kwargs`** are how decorators work (Module 3)
-- **Type hints** are how FastAPI and pytest read your intent
-
-Get these right today and Days 2-4 stop feeling magical.
-
----
-
-# Variables, types, operators (quick)
+Every example today is one **account**. In Python an account is just a `dict` — named fields, no class yet (classes come in Module 3).
 
 ```python
-name: str = "Mechanical Keyboard"
-price: float = 5499.0
-in_stock: bool = True
-tags: list[str] = ["keyboard", "mech"]
-
-# str / int / float / bool / list / dict / tuple / set / None
-# operators: + - * / // % ** == != < > and or not is in
+acct = {"id": 1, "owner": "Ada", "account_type": "savings",
+        "balance": 1500.0, "is_active": True,
+        "tags": ["primary", "online"]}
 ```
 
-Python is dynamically typed — annotations are *for readers and tools*,
-not enforced at runtime. (Unless something like Pydantic enforces them — Day 2.)
+Same six fields all day. M2 stores many of these in files; M3 turns them into a class.
 
 ---
 
-# Control flow & truthiness
+# Variables & Python's types — what is it?
+
+A variable is just a name pointing at a value. You don't declare a type — Python figures it out from the value. The account fields cover the core types.
 
 ```python
-def categorize(price: float) -> str:
-    if price < 500:
-        return "budget"
-    elif price < 5000:
-        return "mid"
-    else:
-        return "premium"
-
-for tag in product.tags:
-    if "mech" in tag.lower():
-        print("mechanical!")
-        break
+acct["owner"]  # str  ·  acct["id"]   # int   ·  acct["balance"]  # float
+acct["is_active"]  # bool  ·  acct["tags"]  # list  ·  acct        # dict
 ```
 
-Falsy: `0`, `0.0`, `""`, `[]`, `{}`, `None`, `False`.
-Everything else is truthy. Don't write `if x == None:` — write `if x is None:`.
+→ notebook: module-1 cell 2
 
 ---
 
-# Functions — the real shape
+# Truthiness — empty things are False
+
+Python lets you test a value directly in `if`. "Empty" or "zero" values are **falsy**: `0`, `0.0`, `""`, `[]`, `{}`, `None`, `False`. Everything else is truthy.
 
 ```python
-def add_product(
-    catalog,
-    name: str,
-    price: float,
-    *,                       # everything after is keyword-only
-    category: str = "Misc",
-    tags: list[str] | None = None,
-) -> int:
-    tags = tags or []
-    ...
-    return product_id
+if not acct["tags"]:        # empty list is falsy → True here
+    print("no tags yet")
 ```
 
-- `*args` collects positional, `**kwargs` collects keyword
-- `*` alone forces keyword-only — great for clarity at call sites
-- A function's return type is the *contract* readers trust
+→ notebook: module-1 cell 4
 
 ---
 
-# Exception handling
+# Control flow — if / elif / else, for, while
+
+`if/elif/else` chooses a branch; `for` walks a sequence; `while` repeats until a condition is false. Indentation (not braces) defines the block.
 
 ```python
-class CatalogError(Exception):
-    """Raised when a catalog operation fails."""
+for acct in accounts:
+    if acct["is_active"]:
+        print(acct["owner"])
+```
 
+→ notebook: module-1 cell 6
+
+---
+
+# Functions — args, defaults, return
+
+`def` names reusable logic. Parameters can have **defaults**; callers pass args by position or by keyword (`name=value`); `return` hands a value back.
+
+```python
+def total_balance(accounts, only_active=True):
+    return sum(a["balance"] for a in accounts if a["is_active"])
+```
+
+→ notebook: module-1 cell 8
+
+---
+
+# Exceptions — try / except / else / finally
+
+When something goes wrong you `raise` an error; the caller `try`s the risky code and `except`s the failure. `else` runs on success, `finally` always runs.
+
+```python
 try:
-    catalog.add(product)
-except CatalogError as exc:
-    logger.warning("could not add: %s", exc)
-except Exception:
-    logger.exception("unexpected")  # logs traceback
-    raise
+    acct = find_account(accounts, 99)
+except LookupError as err:
+    print("not found:", err)
 ```
 
-Three rules:
-1. **Define your own exception types** for your domain (`CatalogError`).
-2. **Catch narrowly**, log, decide whether to re-raise.
-3. **Never `except: pass`** — it eats real bugs.
-
----
-
-# Mental model for today's lab
-
-```
-Product        ← dataclass: id, name, category, price, in_stock, tags
-ProductCatalog ← dict[int, Product] inside
-                  .add  .get  .delete  .list_all  .__len__
-CatalogError   ← your own exception
-```
-
-That's it. ~80 lines of Python.
+→ notebook: module-1 cell 10
 
 ---
 
@@ -181,121 +154,97 @@ End state: `python -m catalog.cli list` prints 5 seeded products.
 
 ---
 
-# The four containers (and when each fits)
+# The four containers — what are they?
 
-| | use it for | gotcha |
-|---|---|---|
-| `list` | ordered, mutable, dupes OK | O(n) lookup |
-| `tuple` | fixed-shape record, hashable | immutable — feature, not bug |
-| `set` | unique membership | unordered |
-| `dict` | **lookup by key**, JSON model | keys must be hashable |
+A bank has **many** accounts. Pick the container by the question you ask most: walk in order → **list**; look up by key → **dict**; a fixed record → **tuple**; unique membership → **set**.
 
-`dict` is the model for JSON. Master dict and Day 2 gets easy.
+```python
+accounts = [ada, lin, sam]      # list: ordered bank
+ada["balance"]                  # dict: account, lookup by key
+tags = {"online", "vip"}        # set: unique tags
+```
+
+→ notebook: module-2 cell 2
 
 ---
 
 # Dict — go deep
 
+The dict is the workhorse: `.get` for safe lookup, an `{id: account}` index for O(1) finds, `|` to merge. The classic bug: **mutating a dict while iterating it** — iterate a copy of the keys.
+
 ```python
-catalog = {1: product_a, 2: product_b}
-
-# safe lookup
-catalog.get(99, default_product)
-
-# merge (3.9+)
-combined = catalog | other_catalog
-
-# iterate
-for pid, product in catalog.items():
-    ...
-
-# common bug: mutating while iterating
-for pid in list(catalog):           # copy keys first
-    if catalog[pid].price < 100:
-        del catalog[pid]
+by_id = {a["id"]: a for a in accounts}   # index
+by_id.get(99, None)                      # no KeyError
+for k in list(by_id): ...                # safe to delete
 ```
+
+→ notebook: module-2 cell 4
 
 ---
 
 # Comprehensions — the Python idiom
 
+A comprehension builds a new collection from an old one in one line — it says *what*, not *how*. Three flavors: list `[...]`, dict `{k: v}`, set `{...}`.
+
 ```python
-# list comprehension
-hits = [p for p in products if "mech" in p.name.lower()]
-
-# dict comprehension
-by_id = {p.id: p for p in products}
-
-# nested + filter
-expensive = {cat: [p for p in items if p.price > 1000]
-             for cat, items in groups.items()}
+active = [a["owner"] for a in accounts if a["is_active"]]
+balances = {a["id"]: a["balance"] for a in accounts}
 ```
 
-Comprehensions express *what*, not *how*. They replace 4-line for-loops.
-Don't nest more than 2 levels deep — at that point write a normal loop.
+→ notebook: module-2 cell 6
 
 ---
 
-# File handling
+# JSON — save & load accounts
+
+`json.dump` writes a Python object to a file; `json.load` reads it back. JSON is the natural format for our dict-shaped accounts. Note: JSON has no tuple — a tuple **round-trips back as a list**.
 
 ```python
-# JSON
-import json
-payload = [p.to_dict() for p in catalog.list_all()]
-Path("catalog.json").write_text(json.dumps(payload, indent=2))
-
-# CSV (always pass newline="")
-import csv
-with open("catalog.csv", "w", newline="") as fh:
-    writer = csv.DictWriter(fh, fieldnames=["id", "name", "price"])
-    writer.writeheader()
-    for p in catalog.list_all():
-        writer.writerow(p.to_dict())
+json.dump(accounts, fh, indent=2)   # save
+accounts = json.load(fh)            # load
 ```
 
-CSV is text-with-rules — quotes, escapes, encodings will bite. Don't roll your own.
+→ notebook: module-2 cell 8
 
 ---
 
-# Modules & virtual environments
+# CSV — rows in, rows out
 
+`csv.DictWriter`/`DictReader` move account dicts to and from rows. Always pass `newline=""`. The pain: everything reads back as a **string** — you coerce types by hand (Day-2 Pydantic fixes this).
+
+```python
+csv.DictWriter(fh, fieldnames=fields).writerows(accounts)
+rows = list(csv.DictReader(fh))     # rows[0]["balance"] is "1500.0" (str!)
 ```
-product-catalog/
-├── pyproject.toml
-└── catalog/
-    ├── __init__.py
-    ├── models.py
-    ├── storage.py
-    └── cli.py
-```
+
+→ notebook: module-2 cell 10
+
+---
+
+# Modules & virtual environments — what are they?
+
+A **module** is just a `.py` file you `import`. A **virtual environment** is a private per-project Python with its own packages, so projects never collide.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"            # editable install + dev extras
-python -m catalog.cli list
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
 ```
 
-`uv` is the faster modern alternative — `uv venv` + `uv pip install`.
+→ notebook: module-2 cell 12
 
 ---
 
 # Logging (not `print`)
 
-```python
-import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO,
-                    format="%(levelname)s %(name)s: %(message)s")
+`print` is for scripts; real code uses `logging`. Levels (`DEBUG<INFO<WARNING<ERROR`) dial verbosity without deleting lines. Loggers are *named* — pass `__name__` to tune per-module.
 
-logger.info("added product id=%s", product.id)
-logger.warning("price unusually high: %s", price)
-logger.exception("save failed")    # includes traceback
+```python
+logger = logging.getLogger("bank")
+logger.info("withdraw owner=%s amount=%s", owner, amt)   # %s args, not f-string
 ```
 
-- Loggers are *named* — pass `__name__` and you can tune per-module.
-- Pass values as args (`%s`), not f-strings — lazy formatting + structured logs.
-- `print()` belongs in scripts; libraries should *only* log.
+→ notebook: module-2 cell 14
 
 ---
 
@@ -322,131 +271,134 @@ End state: catalog survives process restart.
 
 ---
 
-# Classes — the minimum that pays back
+# `class` / `self` / `__init__` — what is it?
+
+A **class** is a blueprint; an **object** is one thing built from it.
+`__init__` runs once when you build an object — it sets up that object's data.
 
 ```python
-class ProductCatalog:
-    def __init__(self, products: list[Product] | None = None) -> None:
-        self._items: dict[int, Product] = {}
-        for p in products or []:
-            self.add(p)
-
-    def add(self, product: Product) -> Product:
-        if product.id in self._items:
-            raise CatalogError(...)
-        self._items[product.id] = product
-        return product
+acct = BankAccount("Ada", 100)   # __init__ runs, returns the object
 ```
 
-- `__init__` builds state, methods change it
-- `self._items` (single underscore) = "private by convention"
-- Don't subclass until you've written it twice — composition first
+→ notebook: module-3 cell 2
 
 ---
 
-# `dataclass` — the bridge to Pydantic
+# `self` — what is it?
+
+A method's first parameter is the object it was called on.
+Python passes it automatically — you write `self` by convention.
+
+`acct.deposit(50)` → `BankAccount.deposit(acct, 50)`  *(Python fills in `self`)*
+
+→ notebook: module-3 cell 4
+
+---
+
+# Methods vs attributes — what is it?
+
+**Attributes** are the data on an object (`self.balance`).
+**Methods** are functions defined in the class that act on that data.
 
 ```python
-from dataclasses import dataclass, field
+acct.balance        # attribute — just a value
+acct.deposit(50)    # method   — call it, it changes state
+```
 
+→ notebook: module-3 cell 6
+
+---
+
+# Dunder methods — what is it?
+
+"Dunder" = **d**ouble **under**score. Python calls them for you when you use
+built-in syntax. `__repr__` controls how an account prints; `__eq__` controls `==` (by `id`).
+
+```python
+print(acct)         # Python calls acct.__repr__()
+acct1 == acct2      # Python calls acct1.__eq__(acct2) — same id?
+```
+
+→ notebook: module-3 cell 8
+
+---
+
+# Type hints — what is it?
+
+Annotations that say what type a value *should* be. Python does **not** enforce
+them at runtime — they exist for readers, editors, and tools.
+
+```python
+def total_balance(accounts: list[dict]) -> float: ...
+```
+
+- Editors autocomplete · mypy/pyright catch bugs · FastAPI & Pydantic use them
+
+→ notebook: module-3 cell 10
+
+---
+
+# `@dataclass` — boilerplate for free
+
+A decorator that writes the boring class boilerplate for you.
+List the fields with type hints; you get `__init__`, `__repr__`, `__eq__` free.
+
+```python
 @dataclass
-class Product:
+class BankAccount:
     id: int
-    name: str
-    category: str
-    price: float
-    in_stock: bool = True
+    owner: str
+    balance: float = 0.0
     tags: list[str] = field(default_factory=list)
 ```
 
-Generated for free: `__init__`, `__repr__`, `__eq__`.
-Day 2 swaps `@dataclass` → Pydantic `BaseModel` and gains runtime validation.
-The fields stay identical.
+> Go deeper: Day 2 swaps `@dataclass` → Pydantic `BaseModel`, same fields, plus runtime validation.
+
+→ notebook: module-3 cell 12
 
 ---
 
-# Type hints — why they matter
+# What a decorator is — what is it?
+
+A function that **takes a function and returns a (usually wrapped) function**.
+`@log_calls` above a function is just `f = log_calls(f)`.
 
 ```python
-def filter_by_price(products: list[Product], max_price: float) -> list[Product]:
-    return [p for p in products if p.price <= max_price]
-```
-
-Hints are not enforced by Python, but:
-- **Editors** autocomplete from them
-- **mypy / pyright** catch bugs before runtime
-- **FastAPI** uses them to generate OpenAPI schemas
-- **Pydantic** uses them to *validate*
-
-Get used to writing them — Days 2-4 lean on them hard.
-
----
-
-# Decorators — read one before writing one
-
-```python
-def log_calls(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        logger.info("call %s", func.__name__)
-        result = func(*args, **kwargs)
-        logger.info("return %s -> %r", func.__name__, result)
-        return result
-    return wrapper
-
 @log_calls
-def add_product(catalog, product):
-    ...
+def withdraw(acct, amount): ...   # withdraw = log_calls(withdraw)
 ```
 
-A decorator is a function that **takes a function and returns a function**.
-`@log_calls` is the same as `add_product = log_calls(add_product)`.
+→ notebook: module-3 cell 14
 
 ---
 
-# Parametrized decorators (`@retry(times=3)`)
+# `@retry(times=3)` — a decorator that takes arguments
+
+A **parametrized** decorator: you call it with arguments, *then* it decorates.
+One extra layer — the outer function captures the settings and returns the decorator.
 
 ```python
-def retry(times=3, delay=0.1, exceptions=(Exception,)):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            for attempt in range(1, times + 1):
-                try:
-                    return func(*args, **kwargs)
-                except exceptions as exc:
-                    if attempt < times:
-                        time.sleep(delay)
-            raise exc
-        return wrapper
-    return decorator
+@retry(times=3)
+def fetch_account(acct_id): ...   # flaky read, retried
 ```
 
-Three nested functions. Once you see it once, every later decorator is the same shape.
+→ notebook: module-3 cell 16
 
 ---
 
 # FastAPI is decorators in action
 
+A web route is just a function with a decorator on top. `@app.get("/accounts")`
+*registers* that function to run when a request hits `/accounts`. Same shape you just built.
+
 ```python
-from fastapi import FastAPI, HTTPException
-
-app = FastAPI(title="Product Catalog")
-
-@app.get("/products")
-def list_products() -> list[dict]:
-    return [p.to_dict() for p in catalog.list_all()]
-
-@app.post("/products", status_code=201)
-def create_product(payload: dict) -> dict:
-    ...
+@app.get("/accounts")
+def list_accounts(): return ACCOUNTS
 ```
 
-- `@app.get("/products")` *registers* the function as a route
-- Type hints determine request parsing + response shape
-- `/docs` Swagger UI is auto-generated
+> Go deeper: Day 4's agent `@tool` reuses this exact register-a-function pattern.
 
-This is the *exact* pattern Day 4's `@tool` will reuse for the agent.
+→ notebook: module-3 cell 18
 
 ---
 

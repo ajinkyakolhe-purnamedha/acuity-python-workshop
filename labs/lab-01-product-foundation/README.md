@@ -2,6 +2,9 @@
 
 **Duration:** ~80 min · **Day:** 1 · **Module:** 1 (Python Core)
 
+> **Concepts used:** classes, `self` & `@dataclass` → `codealong/module-3.ipynb`; dict storage, functions & exceptions → `codealong/module-1.ipynb`.
+> This lab applies the module's `BankAccount` concepts to the course's `Product` domain — same patterns, different thing (the deliberate concept-vs-lab seam).
+
 ## Goal
 Build the in-memory core of the catalog: a `Product` representation and a
 `ProductCatalog` collection you can add to, search, and list from a CLI.

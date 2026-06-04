@@ -1,0 +1,20 @@
+id,name,category,price,in_stock,tags
+100,Wireless Mouse,Electronics,1299,true,mouse|wireless
+101,USB-C Hub,Electronics,2499,true,usb-c|hub
+102,Laptop Stand,Office,1799,true,stand|ergonomic
+103,Notebook A5,Stationery,149,true,paper|notebook
+104,Desk Lamp,Home,999,true,lamp|led
+105,Steel Water Bottle,Fitness,599,true,bottle|steel
+106,Yoga Block,Fitness,449,false,yoga|foam
+107,Coffee Mug,Home,299,true,mug|ceramic
+108,Bluetooth Speaker,Electronics,2999,true,speaker|bluetooth
+109,Phone Case,Electronics,399,true,case|silicone
+110,Travel Backpack,Travel,2199,true,bag|travel
+111,Sticky Notes,Stationery,99,true,paper|sticky
+112,Whiteboard Marker,Stationery,129,true,marker|dryerase
+113,HDMI Cable,Electronics,349,true,cable|hdmi
+114,Mechanical Pencil,Stationery,199,true,pencil|mechanical
+115,Trail Running Shoes,Fitness,4599,true,shoes|running
+116,,Misc,500,true,unnamed
+117,Broken Item,Misc,-50,true,negative-price
+118,Bad Price Tag,Misc,not-a-number,true,bad-price
