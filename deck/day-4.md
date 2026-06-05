@@ -30,7 +30,7 @@ client → CatalogAgent(api_client, llm_client)
             └── pytest suite: tools + schema + loop + golden evals
 ```
 
-Catch-up: `cp -r ../checkpoints/day-4-start/. .`
+Catch-up: `cp -r ../project/checkpoints/day-4-start/. .`
 
 ---
 
@@ -579,7 +579,7 @@ End state: `pytest -q` green, no `OPENAI_API_KEY` needed, ~53 tests.
 
 # End of Day 4 ✅
 
-**Your `product-catalog/` repo:**
+**Your `my-catalog/` project:**
 
 - Python catalog + decorators + type hints (Day 1)
 - FastAPI + Pydantic + `APIClient` + bulk-import (Days 1-2)

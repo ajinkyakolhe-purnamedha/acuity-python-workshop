@@ -6,7 +6,7 @@
 <One paragraph: what you'll build and why it matters in the arc.>
 
 ## You start with
-- `checkpoints/day-N-start/` (or "your working folder from Lab N-1")
+- `project/checkpoints/day-N-start/` (or "your working folder from Lab N-1")
 
 ## You'll end with
 - New / modified files: `path/to/file.py`, ...

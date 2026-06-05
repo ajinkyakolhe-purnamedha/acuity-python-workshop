@@ -30,7 +30,7 @@ client  →  parametrized + mocked HTTP tests
           + HTML report + GitHub Actions
 ```
 
-Catch-up: `cp -r ../checkpoints/day-3-start/. .`
+Catch-up: `cp -r ../project/checkpoints/day-3-start/. .`
 
 ---
 

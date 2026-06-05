@@ -58,7 +58,20 @@ cp ../labs/lab-01-product-foundation/starter/*.py catalog/   # run from my-catal
 
 4. **Wire `if __name__ == "__main__": raise SystemExit(main())`** so `python -m catalog.cli list` works.
 
-5. **Run it.** Try `list`, then add an invalid product (negative price) and observe the error.
+5. **Run it.** Try `list`, then add an invalid product (negative price) to trigger your first error.
+
+   **Read the traceback.** Adding `price=-1` prints something like:
+
+   ```
+   Traceback (most recent call last):
+     File ".../catalog/cli.py", line 38, in cmd_add
+       catalog.add(Product(args.id, args.name, args.category, args.price))
+     File ".../catalog/models.py", line 47, in add
+       raise CatalogError(f"Price must be non-negative (got {product.price})")
+   catalog.models.CatalogError: Price must be non-negative (got -1.0)
+   ```
+
+   Read the **last line first**: it's the exception type + message (`CatalogError: Price must be non-negative...`) — the *what*. Python tracebacks read bottom-up: the bottom line is what broke, the lines above are where (the call chain that got you there).
 
 ## Expected output
 

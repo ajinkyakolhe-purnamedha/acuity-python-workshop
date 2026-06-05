@@ -51,28 +51,21 @@ cp ../labs/lab-03-local-api-server/starter/*.py catalog/   # run from my-catalog
 1. **Create `catalog/decorators.py`.** Two decorators. Use `functools.wraps` so
    wrapped function metadata is preserved (pytest fixtures on Day 3 depend on this).
 
+   `@retry` is a decorator *with config*, so it's three nested functions: `retry(...) → decorator(func) → wrapper(*args, **kwargs)`. The wrapper holds the loop — fill the `# TODO` in `starter/decorators.py`. The skeleton:
+
    ```python
-   def retry(times: int = 3, delay: float = 0.1,
-             exceptions: tuple[type[BaseException], ...] = (Exception,)):
-       def decorator(func):
-           @functools.wraps(func)
-           def wrapper(*args, **kwargs):
-               last_exc = None
-               for attempt in range(1, times + 1):
-                   try:
-                       return func(*args, **kwargs)
-                   except exceptions as exc:
-                       last_exc = exc
-                       logger.warning("%s attempt %d/%d failed: %s",
-                                      func.__name__, attempt, times, exc)
-                       if attempt < times:
-                           time.sleep(delay)
-               raise last_exc
-           return wrapper
-       return decorator
+   def wrapper(*args, **kwargs):
+       for attempt in range(1, times + 1):
+           try:
+               return func(*args, **kwargs)   # success — return immediately
+           except exceptions as exc:
+               # your retry logic — see starter hint:
+               # log a warning; sleep(delay) if more attempts remain;
+               # on the LAST attempt, re-raise
+               ...
    ```
 
-   `@log_calls` is simpler: log the call, run it, log the return (or exception).
+   `@log_calls` is simpler (one wrapper, no loop): log the call, run it, log the return (or re-raise the exception). Fill its `# TODO` too.
 
 2. **Quick sanity check the decorators** before touching FastAPI:
 
@@ -82,18 +75,9 @@ cp ../labs/lab-03-local-api-server/starter/*.py catalog/   # run from my-catalog
        ...  # raise twice, succeed on third
    ```
 
-3. **Create `catalog/server.py`.** Boot one shared `ProductCatalog` from `seed_products()` at import time. Then declare routes:
+3. **Create `catalog/server.py`.** The `app` and the shared `catalog` (booted from `seed_products()` at import time) are already wired in the starter. Fill the five route `# TODO`s: each `@app.get/post/delete` registers a function whose job is to call the catalog and return `.to_dict()` (or a list of them) — FastAPI turns that into JSON.
 
-   ```python
-   app = FastAPI(title="Product Catalog", version="0.1.0")
-   catalog = ProductCatalog(list(seed_products()))
-
-   @app.get("/products")
-   def list_products() -> list[dict]:
-       return [p.to_dict() for p in catalog.list_all()]
-   ```
-
-4. **Map `CatalogError` to HTTP codes.** Missing id → 404, duplicate id → 409, bad payload → 400. Wrap each route's mutation in a `try/except CatalogError` and raise `HTTPException`.
+4. **Map `CatalogError` to HTTP codes.** Missing id → 404, duplicate id → 409, bad payload → 400. Wrap each route's catalog call in `try/except CatalogError` and `raise HTTPException(status_code=...)`. The starter hints show the `get`/`post` shape; the rest follow it.
 
 5. **Run the server.**
    ```bash

@@ -37,7 +37,7 @@ Day 3   + pytest suite + mocks + CI green
 Day 4   + LLM-powered CatalogAgent + agent tests
 ```
 
-Every day extends yesterday's `product-catalog/` repo.
+Every day extends yesterday's project (your `my-catalog/`).
 A catch-up baseline (`day-N-start/`) is provided each morning.
 
 ---

@@ -1,11 +1,14 @@
-"""Shared fixtures for the Day-1 lab specs.
+"""Shared fixtures for the Day-1 lab specs (Labs 1–2).
 
-The import is done lazily inside the fixture so that this conftest stays
-importable even before `catalog/models.py` exists — tests that need the
-catalog simply *skip* until you build it, rather than erroring the session.
+The import is lazy inside the fixture so this conftest stays importable even
+before `catalog/models.py` exists. The Lab 1–2 specs target the **Day-1
+dataclass** `Product`; once you migrate it to Pydantic in Lab 4 they skip
+(see the module-level guard in test_lab01/02).
 """
 
 from __future__ import annotations
+
+import dataclasses
 
 import pytest
 
@@ -16,10 +19,17 @@ def seeded_catalog():
     pytest.importorskip("catalog.models")
     from catalog.models import Product, ProductCatalog
 
+    if not dataclasses.is_dataclass(Product):
+        pytest.skip("Lab 1–2 specs target the Day-1 dataclass Product (now Pydantic)")
+
+    # keyword args work for both the dataclass (Day 1) and Pydantic (Day 2+)
     return ProductCatalog(
         [
-            Product(10, "Cable", "Electronics", 499.0, True, ["usb"]),
-            Product(20, "Keyboard", "Electronics", 5499.0, True, ["mech"]),
-            Product(30, "Yoga Mat", "Fitness", 1299.0, False, ["yoga"]),
+            Product(id=10, name="Cable", category="Electronics",
+                    price=499.0, in_stock=True, tags=["usb"]),
+            Product(id=20, name="Keyboard", category="Electronics",
+                    price=5499.0, in_stock=True, tags=["mech"]),
+            Product(id=30, name="Yoga Mat", category="Fitness",
+                    price=1299.0, in_stock=False, tags=["yoga"]),
         ]
     )

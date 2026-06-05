@@ -63,22 +63,16 @@ Then update `cli.py`: swap the inline `SEED` for `seed_products()` and add `save
 
 ## Steps
 
-1. **Add the comprehension queries to `ProductCatalog`.** Keep them tiny — that's the point.
+1. **Add the comprehension queries to `ProductCatalog`.** Keep them tiny — that's the point. Worked example for the shape:
 
    ```python
    def search_by_name(self, term: str) -> list[Product]:
        needle = term.lower()
        return [p for p in self._items.values() if needle in p.name.lower()]
-
-   def filter_by_price(self, max_price: float) -> list[Product]:
-       return [p for p in self._items.values() if p.price <= max_price]
-
-   def group_by_category(self) -> dict[str, list[Product]]:
-       groups: dict[str, list[Product]] = defaultdict(list)
-       for p in self._items.values():
-           groups[p.category].append(p)
-       return dict(groups)
    ```
+
+   - `filter_by_price(max_price)` — same shape: one comprehension over `self._items.values()`, keep where `p.price <= max_price`.
+   - `group_by_category()` — loop into a `defaultdict(list)` keyed by `p.category`, return `dict(groups)`. (No starter file — these go inside the class you already wrote; the stubs are in *Starter files* above.)
 
 2. **Add `to_dict` / `from_dict` to `Product`.** These are the boundary between Python objects and JSON/CSV rows. CSV stores `tags` as a `|`-joined string; JSON keeps the list.
 

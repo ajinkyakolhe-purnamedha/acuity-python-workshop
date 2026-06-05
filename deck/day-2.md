@@ -29,7 +29,7 @@ server  →  typed server (Pydantic)
             + CSV bulk-import → import_report.json
 ```
 
-If you're behind: `cp -r ../checkpoints/day-2-start/. .`
+If you're behind: `cp -r ../project/checkpoints/day-2-start/. .`
 
 ---
 
@@ -41,7 +41,7 @@ If you're behind: `cp -r ../checkpoints/day-2-start/. .`
 | 2 | REST with `requests` | Lab 5: Build the `APIClient` |
 | 3 | Data-driven patterns | Lab 6: CSV → API bulk import |
 
-Same `product-catalog/` repo, three new files: `models.py` (upgraded), `client.py`, `import_csv.py`.
+Same project, three new files: `models.py` (upgraded), `client.py`, `import_csv.py`.
 
 ---
 

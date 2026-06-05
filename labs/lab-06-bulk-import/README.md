@@ -42,42 +42,12 @@ cp ../labs/lab-06-bulk-import/starter/products.csv  data/      # the CSV lives u
    - row with `price = not-a-number` → validation error (type coercion fails)
    - (optional) a row with an `id` that duplicates the seed → API error 409
 
-2. **Write `catalog/import_csv.py`.** The shape:
+2. **Write `catalog/import_csv.py`.** Loop over `csv.DictReader` rows (`enumerate(..., start=2)` so row numbers match the file past the header) and sort each into one of three buckets:
+   - **validate** — `ProductCreate.model_validate(row)`; on `ValidationError`, append `{"row", "input", "errors": exc.errors()}` to `validation_errors` and `continue` (the row must NOT reach the API).
+   - **create** — `client.create_product(payload)`; on `APIError`, append `{"row", "input", "status", "detail"}` to `api_errors` and `continue`.
+   - **else** — success: append `product.model_dump()` to `created`.
 
-   ```python
-   def import_csv(csv_path, client: APIClient) -> dict[str, Any]:
-       created, validation_errors, api_errors = [], [], []
-
-       with open(csv_path) as fh:
-           for row_no, row in enumerate(csv.DictReader(fh), start=2):
-               try:
-                   payload = ProductCreate.model_validate(row)
-               except ValidationError as exc:
-                   validation_errors.append(
-                       {"row": row_no, "input": row, "errors": exc.errors()})
-                   continue
-               try:
-                   product = client.create_product(payload)
-               except APIError as exc:
-                   api_errors.append(
-                       {"row": row_no, "input": row,
-                        "status": exc.status_code, "detail": exc.detail})
-                   continue
-               created.append(product.model_dump())
-
-       return {
-           "source": str(csv_path),
-           "summary": {
-               "rows_read": len(created)+len(validation_errors)+len(api_errors),
-               "created": len(created),
-               "validation_errors": len(validation_errors),
-               "api_errors": len(api_errors),
-           },
-           "created": created,
-           "validation_errors": validation_errors,
-           "api_errors": api_errors,
-       }
-   ```
+   Return a report dict: `source`, a `summary` (counts of rows_read / created / validation_errors / api_errors), then the three lists themselves. The report shape is already written in `starter/import_csv.py` — you fill the three loop TODOs.
 
    The three lists are **separate** on purpose. Validation failures and API failures need different fixes — never collapse them into a single "errors" bucket.
 

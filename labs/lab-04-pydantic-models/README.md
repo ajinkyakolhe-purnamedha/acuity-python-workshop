@@ -56,16 +56,7 @@ cp ../labs/lab-04-pydantic-models/starter/*.py catalog/   # run from my-catalog/
 
 2. **Add `ProductUpdate` with all fields optional.** Set `model_config = ConfigDict(extra="forbid")` so typos in the JSON body get rejected instead of silently ignored.
 
-3. **Normalize CSV-style tags.** Bulk-import (Lab 6) will send `"a|b|c"` as a string. A `@field_validator("tags", mode="before")` turns it into a list:
-
-   ```python
-   @field_validator("tags", mode="before")
-   @classmethod
-   def _split_csv_tags(cls, v):
-       if isinstance(v, str):
-           return [t.strip() for t in v.split("|") if t.strip()]
-       return v
-   ```
+3. **Normalize CSV-style tags.** Bulk-import (Lab 6) will send `"a|b|c"` as a string. Add a `@field_validator("tags", mode="before")` that, when it sees a `str`, splits on `|` and strips blanks into a list (otherwise passes the value through). Fill the TODO in `starter/models.py`.
 
 4. **Fix every `Product(...)` call site** in `storage.py` and `cli.py`. Pydantic only accepts keyword args:
 
@@ -77,25 +68,9 @@ cp ../labs/lab-04-pydantic-models/starter/*.py catalog/   # run from my-catalog/
            in_stock=True, tags=["cable", "usb-c"])
    ```
 
-5. **Add an `.update()` method to `ProductCatalog`** that takes a `ProductUpdate` and applies it with `model_copy(update=patch.model_dump(exclude_unset=True))`.
+5. **Add an `.update()` method to `ProductCatalog`.** Fetch the existing product, merge in only the fields the caller set — `model_copy(update=patch.model_dump(exclude_unset=True))` — store and return it. `exclude_unset` is what makes a PATCH partial. Fill the TODO in `starter/models.py`.
 
-6. **Annotate the FastAPI routes.**
-
-   ```python
-   @app.post("/products", status_code=201, response_model=Product)
-   def create_product(payload: ProductCreate) -> Product:
-       try:
-           return catalog.add(Product(**payload.model_dump()))
-       except CatalogError as exc:
-           raise HTTPException(status_code=409, detail=str(exc))
-
-   @app.patch("/products/{product_id}", response_model=Product)
-   def update_product(product_id: int, patch: ProductUpdate) -> Product:
-       try:
-           return catalog.update(product_id, patch)
-       except CatalogError as exc:
-           raise HTTPException(status_code=404, detail=str(exc))
-   ```
+6. **Annotate the FastAPI routes.** Give POST `response_model=Product` and a `ProductCreate` payload (build a `Product` from it, 409 on duplicate); add a PATCH route that calls `catalog.update` (404 if the id is missing). Fill the two TODOs in `starter/server.py`.
 
 7. **Run the server and probe `/docs`.** The schema sidebar now shows three rich models with constraints. Try a deliberately bad POST.
 

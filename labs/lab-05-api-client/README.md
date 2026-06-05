@@ -34,18 +34,7 @@ cp ../labs/lab-05-api-client/starter/client.py catalog/   # run from my-catalog/
 
 ## Steps
 
-1. **Start with the boilerplate.** A class wrapping `requests.Session`:
-
-   ```python
-   class APIClient:
-       def __init__(self, base_url="http://localhost:8000", *,
-                    timeout=5.0, session=None):
-           self.base_url = base_url.rstrip("/")
-           self.timeout = timeout
-           self._session = session or requests.Session()
-   ```
-
-   Why a session? Connection pooling + a single place to add auth headers later.
+1. **Start with the boilerplate.** `__init__` is already filled in `starter/client.py` — it wraps a `requests.Session` (`session or requests.Session()`). Why a session? Connection pooling + a single place to add auth headers later, and it's the seam tests inject a fake through on Day 3.
 
 2. **One low-level `_request` method, decorated with `@retry`.**
 
@@ -62,21 +51,9 @@ cp ../labs/lab-05-api-client/starter/client.py catalog/   # run from my-catalog/
 
    Only retry on **network** errors. Retrying a 400 is pointless and a 500 is questionable — let the caller decide.
 
-3. **Define `APIError`** as a regular `Exception` with `status_code` and `detail` attributes. Don't lean on `requests.HTTPError` — callers shouldn't have to import `requests` to catch errors from your client.
+3. **Define `APIError`** as a regular `Exception` with `status_code` and `detail` attributes (call `super().__init__` with a `"{status}: {detail}"` message, then stash both). Don't lean on `requests.HTTPError` — callers shouldn't have to import `requests` to catch errors from your client. Fill the `APIError.__init__` TODO in `starter/client.py`.
 
-4. **Add typed CRUD methods.** Each one is two lines: call `_request`, validate the response into a Pydantic model.
-
-   ```python
-   def list_products(self) -> list[Product]:
-       data = self._request("GET", "/products").json()
-       return [Product.model_validate(row) for row in data]
-
-   def create_product(self, payload: ProductCreate) -> Product:
-       data = self._request("POST", "/products", json=payload.model_dump()).json()
-       return Product.model_validate(data)
-   ```
-
-   Do the same for `get_product`, `update_product`, `delete_product`.
+4. **Add typed CRUD methods.** Each method is the same move: call `_request`, then `Model.model_validate(...)` the JSON response (a list comprehension for `list_products`, a single validate for the rest; `delete_product` returns nothing). Do this for all six CRUD methods — fill the TODOs in `starter/client.py`.
 
 5. **Drive it from an `if __name__ == "__main__":` block or a REPL.**
 
